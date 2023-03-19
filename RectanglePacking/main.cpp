@@ -2,6 +2,7 @@
 #include <GLFW/glfw3.h>
 
 #include <iostream>
+#include <vector>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
@@ -105,17 +106,42 @@ bool buildShaders() {
 	return true;
 }
 
-void render(unsigned int VAO) {
+void render(unsigned int VAO, int count) {
 	glUseProgram(SHADER_PROGRAM);
 	glBindVertexArray(VAO);
-	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-	glBindVertexArray(0);
+	glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
 }
 
 struct Rect {
-	float x, y;
+	float x, y, w, h;
 	int pos;
 };
+
+void addRect(Rect* rect, std::vector<float>* vertices, std::vector<unsigned int>* indices) {
+	auto lengthBefore = vertices->size();
+	vertices->push_back(rect->x + rect->w); //TR
+	vertices->push_back(rect->y);
+	vertices->push_back(0.0f);
+
+	vertices->push_back((rect->x + rect->w) ); //BR
+	vertices->push_back(rect->y - rect->h);
+	vertices->push_back(0.0f);
+
+	vertices->push_back(rect->x); //BL
+	vertices->push_back(rect->y - rect->h);
+	vertices->push_back(0.0f);
+
+	vertices->push_back(rect->x); //TL
+	vertices->push_back(rect->y);
+	vertices->push_back(0.0f);
+
+	indices->push_back(lengthBefore);
+	indices->push_back(lengthBefore + 1);
+	indices->push_back(lengthBefore + 3);
+	indices->push_back(lengthBefore + 1);
+	indices->push_back(lengthBefore + 2);
+	indices->push_back(lengthBefore + 3);
+}
 
 int main()
 {
@@ -127,14 +153,15 @@ int main()
 		return -1;
 	}
 
-	float vertices[] = { 
-	0.5f,  0.5f, 0.0f,  // top right
-	 0.5f, -0.5f, 0.0f,  // bottom right
-	-0.5f, -0.5f, 0.0f,  // bottom left
-	-0.5f,  0.5f, 0.0f   // top left 
-	};
+	std::vector<float> vertices2;
+	std::vector<unsigned int> indices2;
+	Rect r1{};
+	r1.x = -0.05;
+	r1.y = 0.5;
+	r1.w = 0.5;
+	r1.h = 0.5;
 
-	unsigned int indices[] = { 0, 1, 3, 1, 2, 3 };
+	addRect(&r1, &vertices2, &indices2);
 
 	unsigned int EBO, VBO, VAO;
 	glGenVertexArrays(1, &VAO);
@@ -143,9 +170,9 @@ int main()
 	glBindVertexArray(VAO);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices2.size(), vertices2.data(), GL_STATIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*indices2.size(), indices2.data(), GL_STATIC_DRAW);
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
@@ -153,8 +180,6 @@ int main()
 	// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	// You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-	// VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
 	glBindVertexArray(0);
 
 	while (!glfwWindowShouldClose(WINDOW))
@@ -163,7 +188,7 @@ int main()
 
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
-		render(VAO);
+		render(VAO, vertices2.size());
 
 		glfwSwapBuffers(WINDOW);
 		glfwPollEvents();
