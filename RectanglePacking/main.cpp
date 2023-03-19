@@ -118,7 +118,7 @@ struct Rect {
 };
 
 void addRect(Rect* rect, std::vector<float>* vertices, std::vector<unsigned int>* indices) {
-	auto lengthBefore = vertices->size();
+	auto lengthBefore = vertices->size() / 3;
 	vertices->push_back(rect->x + rect->w); //TR
 	vertices->push_back(rect->y);
 	vertices->push_back(0.0f);
@@ -161,7 +161,14 @@ int main()
 	r1.w = 0.5;
 	r1.h = 0.5;
 
+	Rect r2{};
+	r2.x = 0.8;
+	r2.y = 0.8;
+	r2.w = 0.05;
+	r2.h = 0.05;
+
 	addRect(&r1, &vertices2, &indices2);
+	addRect(&r2, &vertices2, &indices2);
 
 	unsigned int EBO, VBO, VAO;
 	glGenVertexArrays(1, &VAO);
