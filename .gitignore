@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+/.vs/RectanglePacking
+/RectanglePacking/x64/Debug
+/x64/Debug
