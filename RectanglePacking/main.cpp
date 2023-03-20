@@ -47,7 +47,7 @@ bool init() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	WINDOW = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+	WINDOW = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Rectangle packing problem", NULL, NULL);
 	if (WINDOW == NULL)
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
