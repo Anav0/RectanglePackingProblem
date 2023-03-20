@@ -252,10 +252,29 @@ void handleEvents(GLFWwindow* window)
 	}
 }
 
+bool isPointInRect(Rect* r, float x, float y) {
+	float max_x = r->x + r->w;
+	float min_x = r->x;
+
+	float max_y = r->y;
+	float min_y = r->y - r->h;
+
+	return x <= max_x && x >= min_x && y >= min_y && y <= max_y;
+}
+
 void onMouseClicked(GLFWwindow* window, int button, int action, int mods) {
 	double xpos, ypos, xop, yop;
 	glfwGetCursorPos(WINDOW, &xpos, &ypos);
 	convertToOpenglCoordSystem(xpos, ypos, &xop, &yop);
+
+	if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+		bool isIn = isPointInRect(&RECTS[0], xop, yop);
+
+		if(isIn)
+			printf("\nIN!\n");
+		else
+			printf("\nOUT\n");
+	}
 
 	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
 		currentlyCreatedRect.x = xop;
