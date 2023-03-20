@@ -21,7 +21,7 @@ const unsigned int SCR_WIDTH = 1024;
 const unsigned int SCR_HEIGHT = 720;
 Rect currentlyCreatedRect{};
 GLFWwindow* WINDOW;
-const float STEP = 0.05;
+const double STEP = 0.05;
 
 bool isDragging = false;
 
@@ -46,10 +46,6 @@ bool init() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-#ifdef __APPLE__
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
 
 	WINDOW = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
 	if (WINDOW == NULL)
@@ -176,11 +172,7 @@ void createVertexArray(unsigned int* VBO, unsigned int* VAO, std::vector<float>*
 
 int main()
 {
-	if (!init()) {
-		return -1;
-	}
-
-	if (!buildShaders()) {
+	if (!init() || !buildShaders()) {
 		return -1;
 	}
 
@@ -237,6 +229,13 @@ void setWidthAndHeight(float TL_x, float TL_y, float BR_x, float BR_y, Rect* rec
 	rect->h = height;
 }
 
+void moveToClosestStep(double step, double* x, double* y) {
+	*x = std::floor(*x / step) * step;
+	*y = std::floor(*y / step) * step;
+
+	printf("%f %f\r", *x, *y);
+}
+
 void handleEvents(GLFWwindow* window)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -246,6 +245,9 @@ void handleEvents(GLFWwindow* window)
 		double xpos, ypos, xop, yop;
 		glfwGetCursorPos(WINDOW, &xpos, &ypos);
 		convertToOpenglCoordSystem(xpos, ypos, &xop, &yop);
+
+		moveToClosestStep(STEP, &xop, &yop);
+
 		setWidthAndHeight(currentlyCreatedRect.x, currentlyCreatedRect.y, xop, yop, &currentlyCreatedRect);
 	}
 }
