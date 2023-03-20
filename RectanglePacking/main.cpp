@@ -268,12 +268,15 @@ void onMouseClicked(GLFWwindow* window, int button, int action, int mods) {
 	convertToOpenglCoordSystem(xpos, ypos, &xop, &yop);
 
 	if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
-		bool isIn = isPointInRect(&RECTS[0], xop, yop);
 
-		if(isIn)
-			printf("\nIN!\n");
-		else
-			printf("\nOUT\n");
+		for (int i = RECTS.size() - 1; i >= 0; i--) {
+			if (isPointInRect(&RECTS[i], xop, yop)) {
+				RECTS.erase(RECTS.begin() + i);
+				break; //Note(Igor): We break since we want to remove only the "top" rectangle
+			}
+				
+
+		}
 	}
 
 	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
