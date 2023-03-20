@@ -3,14 +3,27 @@
 
 #include <iostream>
 #include <vector>
+#include <math.h>
+
+struct Rect {
+	float x, y, w, h;
+	int pos;
+};
+
+std::vector<float> VERTICES;
+std::vector<unsigned int> INDICES;
+std::vector<Rect> RECTS;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow* window);
-
-// settings
+void handleEvents(GLFWwindow* window);
+void onMouseClicked(GLFWwindow* window, int button, int action, int mods);
 const unsigned int SCR_WIDTH = 1024;
 const unsigned int SCR_HEIGHT = 720;
+Rect currentlyCreatedRect{};
 GLFWwindow* WINDOW;
+const float STEP = 0.05;
+
+bool isDragging = false;
 
 const char* vertexShaderSource = "#version 330 core\n"
 "layout (location = 0) in vec3 aPos;\n"
@@ -47,6 +60,7 @@ bool init() {
 	}
 	glfwMakeContextCurrent(WINDOW);
 	glfwSetFramebufferSizeCallback(WINDOW, framebuffer_size_callback);
+	glfwSetMouseButtonCallback(WINDOW, onMouseClicked);
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
@@ -112,18 +126,13 @@ void render(unsigned int VAO, int count) {
 	glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
 }
 
-struct Rect {
-	float x, y, w, h;
-	int pos;
-};
-
 void addRect(Rect* rect, std::vector<float>* vertices, std::vector<unsigned int>* indices) {
 	auto lengthBefore = vertices->size() / 3;
 	vertices->push_back(rect->x + rect->w); //TR
 	vertices->push_back(rect->y);
 	vertices->push_back(0.0f);
 
-	vertices->push_back((rect->x + rect->w) ); //BR
+	vertices->push_back((rect->x + rect->w)); //BR
 	vertices->push_back(rect->y - rect->h);
 	vertices->push_back(0.0f);
 
@@ -143,6 +152,28 @@ void addRect(Rect* rect, std::vector<float>* vertices, std::vector<unsigned int>
 	indices->push_back(lengthBefore + 3);
 }
 
+void createVertexArray(unsigned int* VBO, unsigned int* VAO, std::vector<float>* vertices, std::vector<unsigned int>* indices) {
+
+	unsigned int EBO;
+	glGenVertexArrays(1, VAO);
+	glGenBuffers(1, &EBO);
+	glGenBuffers(1, VBO);
+	glBindVertexArray(*VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, *VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices->size(), vertices->data(), GL_STATIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices->size(), indices->data(), GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glBindVertexArray(0);
+}
+
 int main()
 {
 	if (!init()) {
@@ -153,49 +184,27 @@ int main()
 		return -1;
 	}
 
-	std::vector<float> vertices2;
-	std::vector<unsigned int> indices2;
-	Rect r1{};
-	r1.x = -0.05;
-	r1.y = 0.5;
-	r1.w = 0.5;
-	r1.h = 0.5;
-
-	Rect r2{};
-	r2.x = 0.8;
-	r2.y = 0.8;
-	r2.w = 0.05;
-	r2.h = 0.05;
-
-	addRect(&r1, &vertices2, &indices2);
-	addRect(&r2, &vertices2, &indices2);
-
-	unsigned int EBO, VBO, VAO;
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &EBO);
-	glGenBuffers(1, &VBO);
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices2.size(), vertices2.data(), GL_STATIC_DRAW);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*indices2.size(), indices2.data(), GL_STATIC_DRAW);
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-
-	// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	glBindVertexArray(0);
+	unsigned int VBO, VAO;
 
 	while (!glfwWindowShouldClose(WINDOW))
 	{
-		processInput(WINDOW);
+		handleEvents(WINDOW);
+
+		VERTICES.clear();
+		INDICES.clear();
+
+		addRect(&currentlyCreatedRect, &VERTICES, &INDICES);
+		for (int i = 0; i < RECTS.size(); i++) {
+			Rect r = RECTS[i];
+			addRect(&r, &VERTICES, &INDICES);
+		}
+
+		createVertexArray(&VBO, &VAO, &VERTICES, &INDICES);
 
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
-		render(VAO, vertices2.size());
+
+		render(VAO, VERTICES.size());
 
 		glfwSwapBuffers(WINDOW);
 		glfwPollEvents();
@@ -209,10 +218,55 @@ int main()
 	return 0;
 }
 
-void processInput(GLFWwindow* window)
+void convertToOpenglCoordSystem(double x, double y, double* ox, double* oy) {
+	*ox = 2 * x / SCR_WIDTH - 1;
+	*oy = -2 * y / SCR_HEIGHT + 1;
+}
+
+void setWidthAndHeight(float TL_x, float TL_y, float BR_x, float BR_y, Rect* rect) {
+
+	float left   = std::min(TL_x, BR_x);
+	float right  = std::max(TL_x, BR_x);
+	float top    = std::min(TL_y, BR_y);
+	float bottom = std::max(TL_y, BR_y);
+
+	float width  = right - left;
+	float height = bottom - top;
+
+	rect->w = width;
+	rect->h = height;
+}
+
+void handleEvents(GLFWwindow* window)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
+
+	if (isDragging) {
+		double xpos, ypos, xop, yop;
+		glfwGetCursorPos(WINDOW, &xpos, &ypos);
+		convertToOpenglCoordSystem(xpos, ypos, &xop, &yop);
+		setWidthAndHeight(currentlyCreatedRect.x, currentlyCreatedRect.y, xop, yop, &currentlyCreatedRect);
+	}
+}
+
+void onMouseClicked(GLFWwindow* window, int button, int action, int mods) {
+	double xpos, ypos, xop, yop;
+	glfwGetCursorPos(WINDOW, &xpos, &ypos);
+	convertToOpenglCoordSystem(xpos, ypos, &xop, &yop);
+
+	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+		currentlyCreatedRect.x = xop;
+		currentlyCreatedRect.y = yop;
+		isDragging = true;
+	}
+
+	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
+		isDragging = false;
+
+		RECTS.push_back(currentlyCreatedRect);
+		currentlyCreatedRect = {};
+	}
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
