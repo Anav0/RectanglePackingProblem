@@ -26,18 +26,18 @@ const double STEP = 0.05;
 bool isDragging = false;
 
 const char* vertexShaderSource = "#version 330 core\n"
-"layout (location = 0) in vec3 aPos;\n"
-"void main()\n"
-"{\n"
-"   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-"}\0";
+	"layout (location = 0) in vec3 aPos;\n"
+	"void main()\n"
+	"{\n"
+	"   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+	"}\0";
 
 const char* fragmentShaderSource = "#version 330 core\n"
-"out vec4 FragColor;\n"
-"void main()\n"
-"{\n"
-"   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-"}\n\0";
+	"out vec4 FragColor;\n"
+	"void main()\n"
+	"{\n"
+	"   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+	"}\n\0";
 
 unsigned int SHADER_PROGRAM;
 
@@ -217,12 +217,12 @@ void convertToOpenglCoordSystem(double x, double y, double* ox, double* oy) {
 
 void setWidthAndHeight(float TL_x, float TL_y, float BR_x, float BR_y, Rect* rect) {
 
-	float left   = std::min(TL_x, BR_x);
-	float right  = std::max(TL_x, BR_x);
-	float top    = std::min(TL_y, BR_y);
+	float left = std::min(TL_x, BR_x);
+	float right = std::max(TL_x, BR_x);
+	float top = std::min(TL_y, BR_y);
 	float bottom = std::max(TL_y, BR_y);
 
-	float width  = right - left;
+	float width = right - left;
 	float height = bottom - top;
 
 	rect->w = width;
@@ -262,20 +262,37 @@ bool isPointInRect(Rect* r, float x, float y) {
 	return x <= max_x && x >= min_x && y >= min_y && y <= max_y;
 }
 
+bool isOverlapping(Rect* rect, std::vector<Rect> rects) {
+	float rect_x1 = rect->x;
+	float rect_x2 = rect->x + rect->w;
+	float rect_y1 = rect->y - rect->h;
+	float rect_y2 = rect->y;
+
+	for (auto& r : rects) {
+		float r_x1 = r.x;
+		float r_x2 = r.x + r.w;
+		float r_y1 = r.y - r.h;
+		float r_y2 = r.y;
+
+		if(rect_x1 < r_x2 && rect_x2 > r_x1 &&
+		   rect_y1 < r_y2 && rect_y2 > r_y1)
+			return true;
+	}
+
+	return false;
+}
+
 void onMouseClicked(GLFWwindow* window, int button, int action, int mods) {
 	double xpos, ypos, xop, yop;
 	glfwGetCursorPos(WINDOW, &xpos, &ypos);
 	convertToOpenglCoordSystem(xpos, ypos, &xop, &yop);
 
 	if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
-
 		for (int i = RECTS.size() - 1; i >= 0; i--) {
 			if (isPointInRect(&RECTS[i], xop, yop)) {
 				RECTS.erase(RECTS.begin() + i);
 				break; //Note(Igor): We break since we want to remove only the "top" rectangle
 			}
-				
-
 		}
 	}
 
@@ -288,7 +305,9 @@ void onMouseClicked(GLFWwindow* window, int button, int action, int mods) {
 	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
 		isDragging = false;
 
-		RECTS.push_back(currentlyCreatedRect);
+		if (!isOverlapping(&currentlyCreatedRect, RECTS)) {
+			RECTS.push_back(currentlyCreatedRect);
+		}
 		currentlyCreatedRect = {};
 	}
 }
