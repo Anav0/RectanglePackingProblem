@@ -13,6 +13,7 @@ struct Rect {
 std::vector<float> VERTICES;
 std::vector<unsigned int> INDICES;
 std::vector<Rect> RECTS;
+std::vector<Rect> GRID_LINES;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void handleEvents(GLFWwindow* window);
@@ -21,23 +22,23 @@ const unsigned int SCR_WIDTH = 1024;
 const unsigned int SCR_HEIGHT = 720;
 Rect currentlyCreatedRect{};
 GLFWwindow* WINDOW;
-const double STEP = 0.05;
+const double STEP = 20;
 
 bool isDragging = false;
 
 const char* vertexShaderSource = "#version 330 core\n"
-	"layout (location = 0) in vec3 aPos;\n"
-	"void main()\n"
-	"{\n"
-	"   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-	"}\0";
+"layout (location = 0) in vec3 aPos;\n"
+"void main()\n"
+"{\n"
+"   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+"}\0";
 
 const char* fragmentShaderSource = "#version 330 core\n"
-	"out vec4 FragColor;\n"
-	"void main()\n"
-	"{\n"
-	"   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-	"}\n\0";
+"out vec4 FragColor;\n"
+"void main()\n"
+"{\n"
+"   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+"}\n\0";
 
 unsigned int SHADER_PROGRAM;
 
@@ -170,6 +171,38 @@ void createVertexArray(unsigned int* VBO, unsigned int* VAO, std::vector<float>*
 	glBindVertexArray(0);
 }
 
+void addGrid(std::vector<float>* vertices, std::vector<unsigned int>* indices, double thickness, double gap, const unsigned int maxWidth, const unsigned int maxHeight) {
+
+	float x = -1;
+	float tp = (thickness + gap) / maxWidth;//thickness + gap;
+	
+	int n1 = 0, n2 = 0;
+	while (x <= maxWidth) {
+		Rect r{};
+		r.x = x;
+		r.y = 1.0;
+		r.h = 2;
+		r.w = thickness / maxWidth;// thickness;
+		addRect(&r, vertices, indices);
+		x += tp;
+		n1++;
+	}
+
+	float y = -1;
+	tp = (thickness + gap) / maxHeight;//thickness + gap;
+	while (y <= maxHeight) {
+		Rect r{};
+		r.y = y;
+		r.x = -1.0;
+		r.w = 2;
+		r.h = thickness / maxHeight;// thickness;
+		addRect(&r, vertices, indices);
+		y += tp;
+		n2++;
+	}
+	printf("%i %i\r", n1, n2);
+}
+
 int main()
 {
 	if (!init() || !buildShaders()) {
@@ -184,6 +217,7 @@ int main()
 
 		VERTICES.clear();
 		INDICES.clear();
+		addGrid(&VERTICES, &INDICES, 2.0, STEP, SCR_WIDTH, SCR_HEIGHT);
 
 		addRect(&currentlyCreatedRect, &VERTICES, &INDICES);
 		for (int i = 0; i < RECTS.size(); i++) {
@@ -230,8 +264,10 @@ void setWidthAndHeight(float TL_x, float TL_y, float BR_x, float BR_y, Rect* rec
 }
 
 void moveToClosestStep(double step, double* x, double* y) {
-	*x = std::floor(*x / step) * step;
-	*y = std::floor(*y / step) * step;
+	float normalizedStepW = step / SCR_WIDTH;
+	float normalizedStepH = step / SCR_HEIGHT;
+	*x = std::floor(*x / normalizedStepW) * normalizedStepW;
+	*y = std::floor(*y / normalizedStepH) * normalizedStepH;
 
 	printf("%f %f\r", *x, *y);
 }
@@ -274,13 +310,15 @@ bool isOverlapping(Rect* rect, std::vector<Rect> rects) {
 		float r_y1 = r.y - r.h;
 		float r_y2 = r.y;
 
-		if(rect_x1 < r_x2 && rect_x2 > r_x1 &&
-		   rect_y1 < r_y2 && rect_y2 > r_y1)
+		if (rect_x1 < r_x2 && rect_x2 > r_x1 &&
+			rect_y1 < r_y2 && rect_y2 > r_y1)
 			return true;
 	}
 
 	return false;
 }
+
+
 
 void onMouseClicked(GLFWwindow* window, int button, int action, int mods) {
 	double xpos, ypos, xop, yop;
