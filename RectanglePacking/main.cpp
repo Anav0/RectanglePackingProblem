@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <math.h>
+#include <algorithm>
 
 struct Rect {
 	float x, y, w, h;
@@ -20,7 +21,6 @@ void handleEvents(GLFWwindow* window);
 void onMouseClicked(GLFWwindow* window, int button, int action, int mods);
 const unsigned int SCR_WIDTH = 1024;
 const unsigned int SCR_HEIGHT = 720;
-Rect currentlyCreatedRect{};
 GLFWwindow* WINDOW;
 const double STEP = 20;
 
@@ -123,8 +123,9 @@ void render(unsigned int VAO, int count) {
 	glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
 }
 
-void addRect(Rect* rect, std::vector<float>* vertices, std::vector<unsigned int>* indices) {
+void addRectToVertices(Rect* rect, std::vector<float>* vertices, std::vector<unsigned int>* indices) {
 	auto lengthBefore = vertices->size() / 3;
+
 	vertices->push_back(rect->x + rect->w); //TR
 	vertices->push_back(rect->y);
 	vertices->push_back(0.0f);
@@ -175,7 +176,7 @@ void addGrid(std::vector<float>* vertices, std::vector<unsigned int>* indices, d
 
 	float x = -1;
 	float tp = (thickness + gap) / maxWidth;//thickness + gap;
-	
+
 	int n1 = 0, n2 = 0;
 	while (x <= maxWidth) {
 		Rect r{};
@@ -183,7 +184,8 @@ void addGrid(std::vector<float>* vertices, std::vector<unsigned int>* indices, d
 		r.y = 1.0;
 		r.h = 2;
 		r.w = thickness / maxWidth;// thickness;
-		addRect(&r, vertices, indices);
+		r.pos = vertices->size();
+		addRectToVertices(&r, vertices, indices);
 		x += tp;
 		n1++;
 	}
@@ -196,11 +198,31 @@ void addGrid(std::vector<float>* vertices, std::vector<unsigned int>* indices, d
 		r.x = -1.0;
 		r.w = 2;
 		r.h = thickness / maxHeight;// thickness;
-		addRect(&r, vertices, indices);
+		r.pos = vertices->size();
+		addRectToVertices(&r, vertices, indices);
 		y += tp;
 		n2++;
 	}
-	printf("%i %i\r", n1, n2);
+}
+
+void updateVertexData(std::vector<float>* vertices, Rect* rect) {
+	int index = rect->pos;
+
+	vertices->at(index++) = rect->x + rect->w; //TR
+	vertices->at(index++) = rect->y;
+	vertices->at(index++) = 0.0f;
+
+	vertices->at(index++) = rect->x + rect->w; //BR
+	vertices->at(index++) = rect->y - rect->h;
+	vertices->at(index++) = 0.0f;
+
+	vertices->at(index++) = rect->x; //BL
+	vertices->at(index++) = rect->y - rect->h;
+	vertices->at(index++) = 0.0f;
+
+	vertices->at(index++) = rect->x; //TL
+	vertices->at(index++) = rect->y;
+	vertices->at(index++) = 0.0f;
 }
 
 int main()
@@ -210,19 +232,18 @@ int main()
 	}
 
 	unsigned int VBO, VAO;
+	
+
+	RECTS.push_back(Rect{ -1, -2, 0, 0, 0 });
+	addRectToVertices(&RECTS[0], &VERTICES, &INDICES);
+	addGrid(&VERTICES, &INDICES, 2.0, STEP, SCR_WIDTH, SCR_HEIGHT);
 
 	while (!glfwWindowShouldClose(WINDOW))
 	{
 		handleEvents(WINDOW);
 
-		VERTICES.clear();
-		INDICES.clear();
-		addGrid(&VERTICES, &INDICES, 2.0, STEP, SCR_WIDTH, SCR_HEIGHT);
-
-		addRect(&currentlyCreatedRect, &VERTICES, &INDICES);
 		for (int i = 0; i < RECTS.size(); i++) {
-			Rect r = RECTS[i];
-			addRect(&r, &VERTICES, &INDICES);
+			updateVertexData(&VERTICES, &RECTS[i]);
 		}
 
 		createVertexArray(&VBO, &VAO, &VERTICES, &INDICES);
@@ -268,8 +289,6 @@ void moveToClosestStep(double step, double* x, double* y) {
 	float normalizedStepH = step / SCR_HEIGHT;
 	*x = std::floor(*x / normalizedStepW) * normalizedStepW;
 	*y = std::floor(*y / normalizedStepH) * normalizedStepH;
-
-	printf("%f %f\r", *x, *y);
 }
 
 void handleEvents(GLFWwindow* window)
@@ -284,7 +303,7 @@ void handleEvents(GLFWwindow* window)
 
 		moveToClosestStep(STEP, &xop, &yop);
 
-		setWidthAndHeight(currentlyCreatedRect.x, currentlyCreatedRect.y, xop, yop, &currentlyCreatedRect);
+		setWidthAndHeight(RECTS[0].x, RECTS[0].y, xop, yop, &RECTS[0]);
 	}
 }
 
@@ -304,7 +323,10 @@ bool isOverlapping(Rect* rect, std::vector<Rect> rects) {
 	float rect_y1 = rect->y - rect->h;
 	float rect_y2 = rect->y;
 
-	for (auto& r : rects) {
+	//First element is the one we drag
+	for (size_t i = 1; i < rects.size(); i++)
+	{
+		auto& r = rects[i];
 		float r_x1 = r.x;
 		float r_x2 = r.x + r.w;
 		float r_y1 = r.y - r.h;
@@ -318,8 +340,6 @@ bool isOverlapping(Rect* rect, std::vector<Rect> rects) {
 	return false;
 }
 
-
-
 void onMouseClicked(GLFWwindow* window, int button, int action, int mods) {
 	double xpos, ypos, xop, yop;
 	glfwGetCursorPos(WINDOW, &xpos, &ypos);
@@ -328,25 +348,32 @@ void onMouseClicked(GLFWwindow* window, int button, int action, int mods) {
 	if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
 		for (int i = RECTS.size() - 1; i >= 0; i--) {
 			if (isPointInRect(&RECTS[i], xop, yop)) {
-				RECTS.erase(RECTS.begin() + i);
+				//RECTS.erase(RECTS.begin() + i);
 				break; //Note(Igor): We break since we want to remove only the "top" rectangle
 			}
 		}
 	}
 
 	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-		currentlyCreatedRect.x = xop;
-		currentlyCreatedRect.y = yop;
+		RECTS[0].x = xop;
+		RECTS[0].y = yop;
 		isDragging = true;
 	}
 
 	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
 		isDragging = false;
 
-		if (!isOverlapping(&currentlyCreatedRect, RECTS)) {
-			RECTS.push_back(currentlyCreatedRect);
+		if (!isOverlapping(&RECTS[0], RECTS)) {
+			Rect r{};
+			memcpy(&r, &RECTS[0], sizeof(r));
+			r.pos = VERTICES.size();
+			RECTS.push_back(r);
+			addRectToVertices(&r, &VERTICES, &INDICES);
 		}
-		currentlyCreatedRect = {};
+		RECTS[0].x = -1;
+		RECTS[0].y = -1;
+		RECTS[0].w = 0;
+		RECTS[0].h = 0;
 	}
 }
 
