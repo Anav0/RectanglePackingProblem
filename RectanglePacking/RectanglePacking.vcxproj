@@ -135,10 +135,15 @@
   <ItemGroup>
     <ClCompile Include="EntityManager.cpp" />
     <ClCompile Include="glad.c" />
+    <ClCompile Include="GlfwWindow.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EntityManager.h" />
+    <ClInclude Include="GlfwWindow.h" />
+    <ClInclude Include="Misc.h" />
+    <ClInclude Include="Renderer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

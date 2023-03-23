@@ -1,309 +1,19 @@
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-
 #include <iostream>
 #include <vector>
 #include <math.h>
 #include <algorithm>
 
 #include "EntityManager.h"
+#include "Renderer.h"
+#include "GlfwWindow.h"
 
-std::vector<float> VERTICES;
-std::vector<unsigned int> INDICES;
-std::vector<Rect> GRID_LINES;
+Renderer RENDERER{};
+EntityManager ENTITY_MGR{};
 
-EntityManager EM {};
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void handleEvents(GLFWwindow* window);
-void onMouseClicked(GLFWwindow* window, int button, int action, int mods);
-const unsigned int SCR_WIDTH = 1024;
-const unsigned int SCR_HEIGHT = 720;
-GLFWwindow* WINDOW;
-const double STEP = 20;
+GlfwWindow WINDOW_MGR{};
 
 bool isDragging = false;
-
-const char* vertexShaderSource = "#version 330 core\n"
-"layout (location = 0) in vec3 aPos;\n"
-"void main()\n"
-"{\n"
-"   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-"}\0";
-
-const char* fragmentShaderSource = "#version 330 core\n"
-"out vec4 FragColor;\n"
-"void main()\n"
-"{\n"
-"   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-"}\n\0";
-
-unsigned int SHADER_PROGRAM;
-
-bool init() {
-	glfwInit();
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-	WINDOW = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Rectangle packing problem", NULL, NULL);
-	if (WINDOW == NULL)
-	{
-		std::cout << "Failed to create GLFW window" << std::endl;
-		glfwTerminate();
-		return -1;
-	}
-	glfwMakeContextCurrent(WINDOW);
-	glfwSetFramebufferSizeCallback(WINDOW, framebuffer_size_callback);
-	glfwSetMouseButtonCallback(WINDOW, onMouseClicked);
-
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-	{
-		std::cout << "Failed to initialize GLAD" << std::endl;
-		return false;
-	}
-
-	return true;
-}
-
-bool buildShaders() {
-	unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-	glCompileShader(vertexShader);
-
-	// check for shader compile errors
-	int success;
-	char infoLog[512];
-	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-
-	if (!success)
-	{
-		glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-		std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-		return false;
-	}
-
-	// fragment shader
-	unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-	glCompileShader(fragmentShader);
-	// check for shader compile errors
-	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-	if (!success)
-	{
-		glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-		std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-		return false;
-	}
-
-	// link shaders
-	SHADER_PROGRAM = glCreateProgram();
-	glAttachShader(SHADER_PROGRAM, vertexShader);
-	glAttachShader(SHADER_PROGRAM, fragmentShader);
-	glLinkProgram(SHADER_PROGRAM);
-
-	// check for linking errors
-	glGetProgramiv(SHADER_PROGRAM, GL_LINK_STATUS, &success);
-	if (!success) {
-		glGetProgramInfoLog(SHADER_PROGRAM, 512, NULL, infoLog);
-		std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-		return -1;
-	}
-	glDeleteShader(vertexShader);
-	glDeleteShader(fragmentShader);
-
-	return true;
-}
-
-void render(unsigned int VAO, int count) {
-	glUseProgram(SHADER_PROGRAM);
-	glBindVertexArray(VAO);
-	glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
-}
-
-void addRectToVertices(Rect* rect, std::vector<float>* vertices, std::vector<unsigned int>* indices) {
-	auto lengthBefore = vertices->size() / 3;
-
-	vertices->push_back(rect->x + rect->w); //TR
-	vertices->push_back(rect->y);
-	vertices->push_back(0.0f);
-
-	vertices->push_back((rect->x + rect->w)); //BR
-	vertices->push_back(rect->y - rect->h);
-	vertices->push_back(0.0f);
-
-	vertices->push_back(rect->x); //BL
-	vertices->push_back(rect->y - rect->h);
-	vertices->push_back(0.0f);
-
-	vertices->push_back(rect->x); //TL
-	vertices->push_back(rect->y);
-	vertices->push_back(0.0f);
-
-	indices->push_back(lengthBefore);
-	indices->push_back(lengthBefore + 1);
-	indices->push_back(lengthBefore + 3);
-	indices->push_back(lengthBefore + 1);
-	indices->push_back(lengthBefore + 2);
-	indices->push_back(lengthBefore + 3);
-}
-
-void createVertexArray(unsigned int* VBO, unsigned int* VAO, std::vector<float>* vertices, std::vector<unsigned int>* indices) {
-
-	unsigned int EBO;
-	glGenVertexArrays(1, VAO);
-	glGenBuffers(1, &EBO);
-	glGenBuffers(1, VBO);
-	glBindVertexArray(*VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, *VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices->size(), vertices->data(), GL_STATIC_DRAW);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices->size(), indices->data(), GL_STATIC_DRAW);
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-
-	// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	glBindVertexArray(0);
-}
-
-void addGrid(std::vector<float>* vertices, std::vector<unsigned int>* indices, double thickness, double gap, const unsigned int maxWidth, const unsigned int maxHeight) {
-
-	float x = -1;
-	float tp = (thickness + gap) / maxWidth;//thickness + gap;
-
-	int n1 = 0, n2 = 0;
-	while (x <= maxWidth) {
-		Rect r{};
-		r.x = x;
-		r.y = 1.0;
-		r.h = 2;
-		r.w = thickness / maxWidth;// thickness;
-		r.pos = vertices->size();
-		addRectToVertices(&r, vertices, indices);
-		x += tp;
-		n1++;
-	}
-
-	float y = -1;
-	tp = (thickness + gap) / maxHeight;//thickness + gap;
-	while (y <= maxHeight) {
-		Rect r{};
-		r.y = y;
-		r.x = -1.0;
-		r.w = 2;
-		r.h = thickness / maxHeight;// thickness;
-		r.pos = vertices->size();
-		addRectToVertices(&r, vertices, indices);
-		y += tp;
-		n2++;
-	}
-}
-
-void updateVertexData(std::vector<float>* vertices, Rect* rect) {
-	int index = rect->pos;
-
-	vertices->at(index++) = rect->x + rect->w; //TR
-	vertices->at(index++) = rect->y;
-	vertices->at(index++) = 0.0f;
-
-	vertices->at(index++) = rect->x + rect->w; //BR
-	vertices->at(index++) = rect->y - rect->h;
-	vertices->at(index++) = 0.0f;
-
-	vertices->at(index++) = rect->x; //BL
-	vertices->at(index++) = rect->y - rect->h;
-	vertices->at(index++) = 0.0f;
-
-	vertices->at(index++) = rect->x; //TL
-	vertices->at(index++) = rect->y;
-	vertices->at(index++) = 0.0f;
-}
-
-int main()
-{
-	if (!init() || !buildShaders()) {
-		return -1;
-	}
-
-	unsigned int VBO, VAO;
-	
-
-	EM.Rects.push_back(Rect{ -1, -2, 0, 0, 0 });
-	addRectToVertices(&EM.Rects[0], &VERTICES, &INDICES);
-	addGrid(&VERTICES, &INDICES, 2.0, STEP, SCR_WIDTH, SCR_HEIGHT);
-
-	while (!glfwWindowShouldClose(WINDOW))
-	{
-		handleEvents(WINDOW);
-
-		for (int i = 0; i < EM.Rects.size(); i++) {
-			updateVertexData(&VERTICES, &EM.Rects[i]);
-		}
-
-		createVertexArray(&VBO, &VAO, &VERTICES, &INDICES);
-
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		render(VAO, VERTICES.size());
-
-		glfwSwapBuffers(WINDOW);
-		glfwPollEvents();
-	}
-
-	glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(1, &VBO);
-	glDeleteProgram(SHADER_PROGRAM);
-
-	glfwTerminate();
-	return 0;
-}
-
-void convertToOpenglCoordSystem(double x, double y, double* ox, double* oy) {
-	*ox = 2 * x / SCR_WIDTH - 1;
-	*oy = -2 * y / SCR_HEIGHT + 1;
-}
-
-void setWidthAndHeight(float TL_x, float TL_y, float BR_x, float BR_y, Rect* rect) {
-
-	float left = std::min(TL_x, BR_x);
-	float right = std::max(TL_x, BR_x);
-	float top = std::min(TL_y, BR_y);
-	float bottom = std::max(TL_y, BR_y);
-
-	float width = right - left;
-	float height = bottom - top;
-
-	rect->w = width;
-	rect->h = height;
-}
-
-void moveToClosestStep(double step, double* x, double* y) {
-	float normalizedStepW = step / SCR_WIDTH;
-	float normalizedStepH = step / SCR_HEIGHT;
-	*x = std::floor(*x / normalizedStepW) * normalizedStepW;
-	*y = std::floor(*y / normalizedStepH) * normalizedStepH;
-}
-
-void handleEvents(GLFWwindow* window)
-{
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, true);
-
-	if (isDragging) {
-		double xpos, ypos, xop, yop;
-		glfwGetCursorPos(WINDOW, &xpos, &ypos);
-		convertToOpenglCoordSystem(xpos, ypos, &xop, &yop);
-
-		moveToClosestStep(STEP, &xop, &yop);
-
-		setWidthAndHeight(EM.Rects[0].x, EM.Rects[0].y, xop, yop, &EM.Rects[0]);
-	}
-}
+const double STEP = 20;
 
 bool isPointInRect(Rect* r, float x, float y) {
 	float max_x = r->x + r->w;
@@ -338,44 +48,123 @@ bool isOverlapping(Rect* rect, std::vector<Rect> rects) {
 	return false;
 }
 
-void onMouseClicked(GLFWwindow* window, int button, int action, int mods) {
-	double xpos, ypos, xop, yop;
-	glfwGetCursorPos(WINDOW, &xpos, &ypos);
-	convertToOpenglCoordSystem(xpos, ypos, &xop, &yop);
+void AddGrid(double thickness, double gap, const unsigned int maxWidth, const unsigned int maxHeight) {
 
-	if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
-		for (int i = EM.Rects.size() - 1; i >= 0; i--) {
-			if (isPointInRect(&EM.Rects[i], xop, yop)) {
-				//RECTS.erase(RECTS.begin() + i);
-				break; //Note(Igor): We break since we want to remove only the "top" rectangle
-			}
-		}
+	std::vector<float>* vertices         = &RENDERER.vertices;
+	std::vector<unsigned int>* indices = &RENDERER.indices;
+
+	float x = -1;
+	float tp = (thickness + gap) / maxWidth;//thickness + gap;
+
+	int n1 = 0, n2 = 0;
+	while (x <= maxWidth) {
+		Rect r{};
+		r.x = x;
+		r.y = 1.0;
+		r.h = 2;
+		r.w = thickness / maxWidth;// thickness;
+		r.pos = vertices->size();
+		ENTITY_MGR.Rects.push_back(r);
+		ENTITY_MGR.AddRectToVertices(&r);
+		x += tp;
+		n1++;
 	}
 
-	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-		EM.Rects[0].x = xop;
-		EM.Rects[0].y = yop;
+	float y = -1;
+	tp = (thickness + gap) / maxHeight;//thickness + gap;
+	while (y <= maxHeight) {
+		Rect r{};
+		r.y = y;
+		r.x = -1.0;
+		r.w = 2;
+		r.h = thickness / maxHeight;// thickness;
+		r.pos = vertices->size();
+		ENTITY_MGR.Rects.push_back(r);
+		ENTITY_MGR.AddRectToVertices(&r);
+		y += tp;
+		n2++;
+	}
+}
+
+void ReactToStateChanges() {
+	if (isDragging) {
+		double adjusted_x = WINDOW_MGR.mouse_x;
+		double adjusted_y = WINDOW_MGR.mouse_y;
+		MoveToClosestStep(STEP, &adjusted_x, &adjusted_y, WINDOW_MGR.SCR_WIDTH, WINDOW_MGR.SCR_HEIGHT);
+
+		ENTITY_MGR.SetRectDimentions(ENTITY_MGR.Rects[0].x, ENTITY_MGR.Rects[0].y, adjusted_x, adjusted_y, &ENTITY_MGR.Rects[0]);
+	}
+
+	if (WINDOW_MGR.buttonType == LEFT && WINDOW_MGR.buttonAction == PRESSED) {
 		isDragging = true;
+
+		ENTITY_MGR.Rects[0].x = WINDOW_MGR.mouse_x;
+		ENTITY_MGR.Rects[0].y = WINDOW_MGR.mouse_y;
 	}
 
-	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
+	if (WINDOW_MGR.buttonType == LEFT && WINDOW_MGR.buttonAction == RELEASED) {
 		isDragging = false;
 
-		if (!isOverlapping(&EM.Rects[0], EM.Rects)) {
+		if (!isOverlapping(&ENTITY_MGR.Rects[0], ENTITY_MGR.Rects)) {
 			Rect r{};
-			memcpy(&r, &EM.Rects[0], sizeof(r));
-			r.pos = VERTICES.size();
-			EM.Rects.push_back(r);
-			addRectToVertices(&r, &VERTICES, &INDICES);
+			memcpy(&r, &ENTITY_MGR.Rects[0], sizeof(r));
+			r.pos = RENDERER.vertices.size();
+			ENTITY_MGR.Rects.push_back(r);
+			ENTITY_MGR.AddRectToVertices(&r);
 		}
-		EM.Rects[0].x = -1;
-		EM.Rects[0].y = -1;
-		EM.Rects[0].w = 0;
-		EM.Rects[0].h = 0;
+
+		ENTITY_MGR.Rects[0].x = -1;
+		ENTITY_MGR.Rects[0].y = -1;
+		ENTITY_MGR.Rects[0].w = 0;
+		ENTITY_MGR.Rects[0].h = 0;
 	}
 }
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-	glViewport(0, 0, width, height);
+void RegisterDrawingRectAsFirstElement() {
+	ENTITY_MGR.Rects.push_back(Rect{ -1, -2, 0, 0, 0 });
+	ENTITY_MGR.AddRectToVertices(&ENTITY_MGR.Rects[0]);
 }
+
+int main()
+{
+	ENTITY_MGR.renderer = &RENDERER;
+
+	if (!WINDOW_MGR.Init() || !RENDERER.BuildShaders()) {
+		return -1;
+	}
+	unsigned int VBO, VAO;
+	
+	RegisterDrawingRectAsFirstElement();
+	//AddGrid(2.0, STEP, WINDOW_MGR.SCR_WIDTH, WINDOW_MGR.SCR_HEIGHT);
+
+	while (!WINDOW_MGR.IsClosing())
+	{
+		WINDOW_MGR.onBeginOfTheLoop();
+		glfwPollEvents();
+
+		ReactToStateChanges();
+
+		for (int i = 0; i < ENTITY_MGR.Rects.size(); i++) {
+			ENTITY_MGR.UpdateVertexData(&ENTITY_MGR.Rects[i]);
+		}
+
+		RENDERER.CreateVertexArray(&VBO, &VAO);
+
+		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		RENDERER.Render(VAO);
+
+		glfwSwapBuffers(WINDOW_MGR.WINDOW);
+	}
+
+	glDeleteVertexArrays(1, &VAO);
+	glDeleteBuffers(1, &VBO);
+	glDeleteProgram(RENDERER.SHADER_PROGRAM);
+
+	glfwTerminate();
+	return 0;
+}
+
+
+
