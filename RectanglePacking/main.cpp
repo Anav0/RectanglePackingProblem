@@ -6,15 +6,13 @@
 #include <math.h>
 #include <algorithm>
 
-struct Rect {
-	float x, y, w, h;
-	int pos;
-};
+#include "EntityManager.h"
 
 std::vector<float> VERTICES;
 std::vector<unsigned int> INDICES;
-std::vector<Rect> RECTS;
 std::vector<Rect> GRID_LINES;
+
+EntityManager EM {};
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void handleEvents(GLFWwindow* window);
@@ -234,16 +232,16 @@ int main()
 	unsigned int VBO, VAO;
 	
 
-	RECTS.push_back(Rect{ -1, -2, 0, 0, 0 });
-	addRectToVertices(&RECTS[0], &VERTICES, &INDICES);
+	EM.Rects.push_back(Rect{ -1, -2, 0, 0, 0 });
+	addRectToVertices(&EM.Rects[0], &VERTICES, &INDICES);
 	addGrid(&VERTICES, &INDICES, 2.0, STEP, SCR_WIDTH, SCR_HEIGHT);
 
 	while (!glfwWindowShouldClose(WINDOW))
 	{
 		handleEvents(WINDOW);
 
-		for (int i = 0; i < RECTS.size(); i++) {
-			updateVertexData(&VERTICES, &RECTS[i]);
+		for (int i = 0; i < EM.Rects.size(); i++) {
+			updateVertexData(&VERTICES, &EM.Rects[i]);
 		}
 
 		createVertexArray(&VBO, &VAO, &VERTICES, &INDICES);
@@ -303,7 +301,7 @@ void handleEvents(GLFWwindow* window)
 
 		moveToClosestStep(STEP, &xop, &yop);
 
-		setWidthAndHeight(RECTS[0].x, RECTS[0].y, xop, yop, &RECTS[0]);
+		setWidthAndHeight(EM.Rects[0].x, EM.Rects[0].y, xop, yop, &EM.Rects[0]);
 	}
 }
 
@@ -346,8 +344,8 @@ void onMouseClicked(GLFWwindow* window, int button, int action, int mods) {
 	convertToOpenglCoordSystem(xpos, ypos, &xop, &yop);
 
 	if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
-		for (int i = RECTS.size() - 1; i >= 0; i--) {
-			if (isPointInRect(&RECTS[i], xop, yop)) {
+		for (int i = EM.Rects.size() - 1; i >= 0; i--) {
+			if (isPointInRect(&EM.Rects[i], xop, yop)) {
 				//RECTS.erase(RECTS.begin() + i);
 				break; //Note(Igor): We break since we want to remove only the "top" rectangle
 			}
@@ -355,25 +353,25 @@ void onMouseClicked(GLFWwindow* window, int button, int action, int mods) {
 	}
 
 	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-		RECTS[0].x = xop;
-		RECTS[0].y = yop;
+		EM.Rects[0].x = xop;
+		EM.Rects[0].y = yop;
 		isDragging = true;
 	}
 
 	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
 		isDragging = false;
 
-		if (!isOverlapping(&RECTS[0], RECTS)) {
+		if (!isOverlapping(&EM.Rects[0], EM.Rects)) {
 			Rect r{};
-			memcpy(&r, &RECTS[0], sizeof(r));
+			memcpy(&r, &EM.Rects[0], sizeof(r));
 			r.pos = VERTICES.size();
-			RECTS.push_back(r);
+			EM.Rects.push_back(r);
 			addRectToVertices(&r, &VERTICES, &INDICES);
 		}
-		RECTS[0].x = -1;
-		RECTS[0].y = -1;
-		RECTS[0].w = 0;
-		RECTS[0].h = 0;
+		EM.Rects[0].x = -1;
+		EM.Rects[0].y = -1;
+		EM.Rects[0].w = 0;
+		EM.Rects[0].h = 0;
 	}
 }
 
