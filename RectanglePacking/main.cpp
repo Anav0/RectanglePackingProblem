@@ -48,41 +48,47 @@ bool isOverlapping(Rect* rect, std::vector<Rect> rects) {
 	return false;
 }
 
-void AddGrid(double x, double y, double thickness, double gap, const unsigned int maxWidth, const unsigned int maxHeight) {
+void AddGrid(double x, double y, int rows_n, int column_n, const unsigned int maxWidth, const unsigned int maxHeight) {
 
 	std::vector<float>* vertices       = &RENDERER.vertices;
 	std::vector<unsigned int>* indices = &RENDERER.indices;
+	float thickness = 2.0;
 
-	float tp = (thickness + gap) / maxWidth;
-	int howManyHorizontalLines = (maxHeight / (thickness + gap))*2;
-	int howManyVerticalLines   = (maxWidth / (thickness + gap))*2;
+	float col_width  = (static_cast<float>(maxWidth) / column_n) / WINDOW_MGR.SCR_WIDTH;
+	float row_height = (static_cast<float>(maxHeight) / rows_n) / WINDOW_MGR.SCR_HEIGHT;
+
 	int vertical_n = 0;
+	int horizontal_n = 0;
+
 	float normalized_height = static_cast<float>(maxHeight) / WINDOW_MGR.SCR_HEIGHT;
 	float normalized_width  = static_cast<float>(maxWidth) / WINDOW_MGR.SCR_WIDTH;
-	while (vertical_n <= howManyVerticalLines) {
+
+	float x_p = x;
+	
+	while (vertical_n <= column_n) {
 		Rect r{};
-		r.x = x;
-		r.y = y;
+		r.x = x_p;
+		r.y = y + normalized_height;
 		r.h = normalized_height;
-		r.w = thickness / maxWidth;
+		r.w = thickness / maxHeight;
 		r.pos = vertices->size();
 		ENTITY_MGR.Grid.push_back(r);
 		ENTITY_MGR.AddRectToVertices(&r);
-		x += tp;
+		x_p += col_width;
 		vertical_n++;
 	}
-	int horizontal_n = 0;
-	tp = (thickness + gap) / maxHeight;
-	while (horizontal_n <= howManyHorizontalLines) {
+	
+	float y_p = y;
+	while (horizontal_n <= rows_n) {
 		Rect r{};
-		r.y = y;
+		r.y = y_p;
 		r.x = x;
 		r.w = normalized_width;
 		r.h = thickness / maxWidth;
 		r.pos = vertices->size();
 		ENTITY_MGR.Grid.push_back(r);
 		ENTITY_MGR.AddRectToVertices(&r);
-		y += tp;
+		y_p += row_height;
 		horizontal_n++;
 	}
 }
@@ -134,10 +140,9 @@ int main()
 		return -1;
 	}
 	unsigned int VBO, VAO;
-	
+
 	RegisterDrawingRectAsFirstElement();
-	//AddGrid(0.0, 0.0, 2.0, STEP, WINDOW_MGR.SCR_WIDTH, WINDOW_MGR.SCR_HEIGHT);
-	AddGrid(0.0, 0.0, 2.0, STEP, 200, 200);
+	AddGrid(-0.5, -0.5, 20, 20, 1000, 1000);
 
 	while (!WINDOW_MGR.IsClosing())
 	{
