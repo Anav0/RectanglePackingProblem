@@ -14,6 +14,8 @@ public:
 	Renderer *renderer;
 
 	std::vector<Rect> Rects;
+	std::vector<Rect> Grid;
+
 	int total_number_of_rects = 0;
 
 	void AddRectToVertices(Rect* rect);

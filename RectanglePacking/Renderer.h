@@ -26,8 +26,6 @@ private:
 	
 public:
 	unsigned int       SHADER_PROGRAM;
-	unsigned int SCR_WIDTH  = 1024;
-	unsigned int SCR_HEIGHT = 720;
 	GLFWwindow* WINDOW;
 
 	std::vector<float> vertices;
