@@ -63,8 +63,16 @@ void AddGrid(double x, double y, int rows_n, int column_n, const unsigned int ma
 	float normalized_height = static_cast<float>(maxHeight) / WINDOW_MGR.SCR_HEIGHT;
 	float normalized_width  = static_cast<float>(maxWidth) / WINDOW_MGR.SCR_WIDTH;
 
+	Grid grid{};
+	grid.x = x;
+	grid.y = y;
+	grid.w = normalized_width;
+	grid.h = normalized_height;
+	grid.col_n = column_n;
+	grid.row_n = rows_n;
+
 	float x_p = x;
-	
+
 	while (vertical_n <= column_n) {
 		Rect r{};
 		r.x = x_p;
@@ -72,7 +80,7 @@ void AddGrid(double x, double y, int rows_n, int column_n, const unsigned int ma
 		r.h = normalized_height;
 		r.w = thickness / maxHeight;
 		r.pos = vertices->size();
-		ENTITY_MGR.Grid.push_back(r);
+		grid.lines.push_back(r);
 		ENTITY_MGR.AddRectToVertices(&r);
 		x_p += col_width;
 		vertical_n++;
@@ -86,11 +94,13 @@ void AddGrid(double x, double y, int rows_n, int column_n, const unsigned int ma
 		r.w = normalized_width;
 		r.h = thickness / maxWidth;
 		r.pos = vertices->size();
-		ENTITY_MGR.Grid.push_back(r);
+		grid.lines.push_back(r);
 		ENTITY_MGR.AddRectToVertices(&r);
 		y_p += row_height;
 		horizontal_n++;
 	}
+
+	ENTITY_MGR.Grids.push_back(grid);
 }
 
 void ReactToStateChanges() {
@@ -142,7 +152,7 @@ int main()
 	unsigned int VBO, VAO;
 
 	RegisterDrawingRectAsFirstElement();
-	AddGrid(-0.5, -0.5, 20, 20, 1000, 1000);
+	AddGrid(-0.9, -0.9, 20, 20, 1000, 1000);
 
 	while (!WINDOW_MGR.IsClosing())
 	{

@@ -8,13 +8,19 @@ struct Rect {
 	int pos;
 };
 
+struct Grid {
+	float x, y, w, h;
+	int pos, col_n, row_n;
+	std::vector<Rect> lines;
+};
+
 class EntityManager
 {
 public:
 	Renderer *renderer;
 
 	std::vector<Rect> Rects;
-	std::vector<Rect> Grid;
+	std::vector<Grid> Grids;
 
 	int total_number_of_rects = 0;
 
