@@ -78,7 +78,7 @@ void AddGrid(double x, double y, int rows_n, int column_n, const unsigned int ma
 	while (vertical_n <= column_n) {
 		Rect r{};
 		r.x = x_p;
-		r.y = y + normalized_height;
+		r.y = y;
 		r.h = normalized_height;
 		r.w = thickness / maxHeight;
 		r.pos = vertices->size();
@@ -91,7 +91,7 @@ void AddGrid(double x, double y, int rows_n, int column_n, const unsigned int ma
 	float y_p = y;
 	while (horizontal_n <= rows_n) {
 		Rect r{};
-		r.y = y_p;
+		r.y = y_p - normalized_height;
 		r.x = x;
 		r.w = normalized_width;
 		r.h = thickness / maxWidth;
@@ -154,7 +154,7 @@ int main()
 	unsigned int VBO, VAO;
 
 	RegisterDrawingRectAsFirstElement();
-	AddGrid(-0.9, -0.9, 20, 20, 1000, 1000);
+	AddGrid(-0.9, 0.1, 20, 20, 1000, 1000);
 
 	while (!WINDOW_MGR.IsClosing())
 	{
