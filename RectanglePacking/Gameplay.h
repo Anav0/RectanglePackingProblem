@@ -88,8 +88,9 @@ void SnapRectToGridCell(Grid* grid, Rect* rect, int row, int col) {
 	rect->y = cell_y;
 }
 
-Rect DrawRectOnGrid(Grid* grid, EntityManager* em, int startRow, int startCol, int span_h, int span_v) {
+Rect DrawRectOnGrid(Grid* grid, EntityManager* em, int startRow, int startCol, int span_h, int span_v, Color color) {
 	Rect rect{};
+	rect.color = color;
 
 	//Set x and y to start cells x and y
 	float cell_x, cell_y;

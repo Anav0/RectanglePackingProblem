@@ -5,23 +5,39 @@ void EntityManager::AddRectToVertices(Rect* rect)
 	std::vector<float>* vertices = &renderer->vertices;
 	std::vector<unsigned int>* indices  = &renderer->indices;
 
-	auto lengthBefore = vertices->size() / 3;
+	auto lengthBefore = vertices->size() / 6;
+
+	float color_r = rect->color.r;
+	float color_g = rect->color.g;
+	float color_b = rect->color.b;
 
 	vertices->push_back(rect->x + rect->w); //TR
 	vertices->push_back(rect->y);
 	vertices->push_back(0.0f);
+	vertices->push_back(color_r); //COLOR
+	vertices->push_back(color_g); //COLOR
+	vertices->push_back(color_b); //COLOR
 
 	vertices->push_back((rect->x + rect->w)); //BR
 	vertices->push_back(rect->y - rect->h);
 	vertices->push_back(0.0f);
+	vertices->push_back(color_r); //COLOR
+	vertices->push_back(color_g); //COLOR
+	vertices->push_back(color_b); //COLOR
 
 	vertices->push_back(rect->x); //BL
 	vertices->push_back(rect->y - rect->h);
 	vertices->push_back(0.0f);
+	vertices->push_back(color_r); //COLOR
+	vertices->push_back(color_g); //COLOR
+	vertices->push_back(color_b); //COLOR
 
 	vertices->push_back(rect->x); //TL
 	vertices->push_back(rect->y);
 	vertices->push_back(0.0f);
+	vertices->push_back(color_r); //COLOR
+	vertices->push_back(color_g); //COLOR
+	vertices->push_back(color_b); //COLOR
 
 	indices->push_back(lengthBefore);
 	indices->push_back(lengthBefore + 1);
@@ -38,21 +54,38 @@ void EntityManager::UpdateVertexData(Rect* rect)
 
 	int index = rect->pos;
 
+	float color_r = rect->color.r;
+	float color_g = rect->color.g;
+	float color_b = rect->color.b;
+
 	vertices->at(index++) = rect->x + rect->w; //TR
 	vertices->at(index++) = rect->y;
 	vertices->at(index++) = 0.0f;
+	vertices->at(index++) = color_r; //COLORS
+	vertices->at(index++) = color_g;
+	vertices->at(index++) = color_b;
+	
 			
 	vertices->at(index++) = rect->x + rect->w; //BR
 	vertices->at(index++) = rect->y - rect->h;
 	vertices->at(index++) = 0.0f;
+	vertices->at(index++) = color_r; //COLORS
+	vertices->at(index++) = color_g;
+	vertices->at(index++) = color_b;
 			
 	vertices->at(index++) = rect->x; //BL
 	vertices->at(index++) = rect->y - rect->h;
 	vertices->at(index++) = 0.0f;
+	vertices->at(index++) = color_r; //COLORS
+	vertices->at(index++) = color_g;
+	vertices->at(index++) = color_b;
 			
 	vertices->at(index++) = rect->x; //TL
 	vertices->at(index++) = rect->y;
 	vertices->at(index++) = 0.0f;
+	vertices->at(index++) = color_r; //COLORS
+	vertices->at(index++) = color_g;
+	vertices->at(index++) = color_b;
 }
 
 void EntityManager::SetRectDimentions(float TL_x, float TL_y, float BR_x, float BR_y, Rect* rect) {

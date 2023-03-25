@@ -11,27 +11,28 @@
 
 Renderer RENDERER{};
 EntityManager ENTITY_MGR{};
-
+Color defaultRectColor { 0.78f, 0.52f, 0.05f };
+Color defaultGridColor { 0.05f, 0.69f, 0.78f };
 GlfwWindow WINDOW_MGR{};
 
 bool isDragging = false;
 Grid* gridMouseWasIn = nullptr;
 
 
-void AddGrid(double x, double y, int rows_n, int column_n, const unsigned int maxWidth, const unsigned int maxHeight) {
+void AddGrid(double x, double y, int rows_n, int column_n, const unsigned int maxWidth, const unsigned int maxHeight, Color color) {
 
-	std::vector<float>* vertices       = &RENDERER.vertices;
+	std::vector<float>* vertices = &RENDERER.vertices;
 	std::vector<unsigned int>* indices = &RENDERER.indices;
 	float thickness = 2.0;
 
-	float col_width  = (static_cast<float>(maxWidth) / column_n) / WINDOW_MGR.SCR_WIDTH;
+	float col_width = (static_cast<float>(maxWidth) / column_n) / WINDOW_MGR.SCR_WIDTH;
 	float row_height = (static_cast<float>(maxHeight) / rows_n) / WINDOW_MGR.SCR_HEIGHT;
 
 	int vertical_n = 0;
 	int horizontal_n = 0;
 
 	float normalized_height = static_cast<float>(maxHeight) / WINDOW_MGR.SCR_HEIGHT;
-	float normalized_width  = static_cast<float>(maxWidth) / WINDOW_MGR.SCR_WIDTH;
+	float normalized_width = static_cast<float>(maxWidth) / WINDOW_MGR.SCR_WIDTH;
 
 	Grid grid{};
 	grid.cell_h = row_height;
@@ -49,6 +50,7 @@ void AddGrid(double x, double y, int rows_n, int column_n, const unsigned int ma
 
 	while (vertical_n <= column_n) {
 		Rect r{};
+		r.color = color;
 		r.x = x_p;
 		r.y = y;
 		r.h = normalized_height;
@@ -59,10 +61,11 @@ void AddGrid(double x, double y, int rows_n, int column_n, const unsigned int ma
 		x_p += col_width;
 		vertical_n++;
 	}
-	
+
 	float y_p = y;
 	while (horizontal_n <= rows_n) {
 		Rect r{};
+		r.color = color;
 		r.y = y_p - normalized_height;
 		r.x = x;
 		r.w = normalized_width;
@@ -77,7 +80,7 @@ void AddGrid(double x, double y, int rows_n, int column_n, const unsigned int ma
 	ENTITY_MGR.Grids.push_back(grid);
 }
 
-void GetColAndRowUnderCursor(Grid* grid,float mouse_x, float mouse_y, int* row, int* col) {
+void GetColAndRowUnderCursor(Grid* grid, float mouse_x, float mouse_y, int* row, int* col) {
 
 	*row = 0;
 	*col = 0;
@@ -125,6 +128,7 @@ void ReactToStateChanges() {
 
 		if (!isOverlapping(&ENTITY_MGR.Rects[0], ENTITY_MGR.Rects)) {
 			Rect r{};
+			r.color = defaultRectColor;
 			memcpy(&r, &ENTITY_MGR.Rects[0], sizeof(r));
 			r.pos = RENDERER.vertices.size();
 			ENTITY_MGR.Rects.push_back(r);
@@ -139,7 +143,11 @@ void ReactToStateChanges() {
 }
 
 void RegisterDrawingRectAsFirstElement() {
-	ENTITY_MGR.Rects.push_back(Rect{ -1, -2, 0, 0, 0 });
+	Rect r {};
+	r.x = -1;
+	r.y = -1;
+	r.color = defaultRectColor;
+	ENTITY_MGR.Rects.push_back(r);
 	ENTITY_MGR.AddRectToVertices(&ENTITY_MGR.Rects[0]);
 }
 
@@ -153,7 +161,7 @@ int main()
 	unsigned int VBO, VAO;
 
 	RegisterDrawingRectAsFirstElement();
-	AddGrid(-0.9, 0.3, 32, 32, 1280, 1280);
+	AddGrid(-0.9, 0.3, 32, 32, 1280, 1280, defaultGridColor);
 
 
 	while (!WINDOW_MGR.IsClosing())

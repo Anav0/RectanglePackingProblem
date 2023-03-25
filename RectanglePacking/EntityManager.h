@@ -3,9 +3,14 @@
 #include <vector>
 #include "Renderer.h"
 
+struct Color {
+	float r, g, b;
+};
+
 struct Rect {
 	float x, y, w, h;
 	int pos;
+	Color color;
 };
 
 struct Grid {
