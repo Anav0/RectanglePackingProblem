@@ -25,8 +25,8 @@ private:
 		"}\n\0";
 	
 public:
-	unsigned int       SHADER_PROGRAM;
-	GLFWwindow* WINDOW;
+	unsigned int SHADER_PROGRAM;
+	GLFWwindow*  WINDOW;
 
 	std::vector<float> vertices;
 	std::vector<unsigned int> indices;
