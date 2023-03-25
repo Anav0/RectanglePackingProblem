@@ -64,6 +64,8 @@ void AddGrid(double x, double y, int rows_n, int column_n, const unsigned int ma
 	float normalized_width  = static_cast<float>(maxWidth) / WINDOW_MGR.SCR_WIDTH;
 
 	Grid grid{};
+	grid.line_thickness = thickness;
+	grid.gap = col_width;
 	grid.x = x;
 	grid.y = y;
 	grid.w = normalized_width;

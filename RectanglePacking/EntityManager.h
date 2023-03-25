@@ -9,7 +9,7 @@ struct Rect {
 };
 
 struct Grid {
-	float x, y, w, h;
+	float x, y, w, h, line_thickness, gap;
 	int pos, col_n, row_n;
 	std::vector<Rect> lines;
 };
