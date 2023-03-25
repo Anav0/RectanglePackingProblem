@@ -141,6 +141,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EntityManager.h" />
+    <ClInclude Include="Gameplay.h" />
     <ClInclude Include="GlfwWindow.h" />
     <ClInclude Include="Misc.h" />
     <ClInclude Include="Renderer.h" />

@@ -67,4 +67,11 @@ void EntityManager::SetRectDimentions(float TL_x, float TL_y, float BR_x, float 
 
 	rect->w = width;
 	rect->h = height;
+
+}
+
+void EntityManager::RegisterRect(Rect rect) {
+	rect.pos = renderer->vertices.size();
+	Rects.push_back(rect);
+	AddRectToVertices(&rect);
 }

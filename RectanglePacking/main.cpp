@@ -7,46 +7,16 @@
 #include "Renderer.h"
 #include "GlfwWindow.h"
 
+#include "Gameplay.h"
+
 Renderer RENDERER{};
 EntityManager ENTITY_MGR{};
 
 GlfwWindow WINDOW_MGR{};
 
 bool isDragging = false;
-const double STEP = 20;
+Grid* gridMouseWasIn = nullptr;
 
-bool isPointInRect(Rect* r, float x, float y) {
-	float max_x = r->x + r->w;
-	float min_x = r->x;
-
-	float max_y = r->y;
-	float min_y = r->y - r->h;
-
-	return x <= max_x && x >= min_x && y >= min_y && y <= max_y;
-}
-
-bool isOverlapping(Rect* rect, std::vector<Rect> rects) {
-	float rect_x1 = rect->x;
-	float rect_x2 = rect->x + rect->w;
-	float rect_y1 = rect->y - rect->h;
-	float rect_y2 = rect->y;
-
-	//First element is the one we drag
-	for (size_t i = 1; i < rects.size(); i++)
-	{
-		auto& r = rects[i];
-		float r_x1 = r.x;
-		float r_x2 = r.x + r.w;
-		float r_y1 = r.y - r.h;
-		float r_y2 = r.y;
-
-		if (rect_x1 < r_x2 && rect_x2 > r_x1 &&
-			rect_y1 < r_y2 && rect_y2 > r_y1)
-			return true;
-	}
-
-	return false;
-}
 
 void AddGrid(double x, double y, int rows_n, int column_n, const unsigned int maxWidth, const unsigned int maxHeight) {
 
@@ -64,7 +34,9 @@ void AddGrid(double x, double y, int rows_n, int column_n, const unsigned int ma
 	float normalized_width  = static_cast<float>(maxWidth) / WINDOW_MGR.SCR_WIDTH;
 
 	Grid grid{};
-	grid.line_thickness = thickness;
+	grid.cell_h = row_height;
+	grid.cell_w = col_width;
+	grid.line_thickness = (static_cast<float>(maxHeight) / rows_n);
 	grid.gap = col_width;
 	grid.x = x;
 	grid.y = y;
@@ -82,7 +54,7 @@ void AddGrid(double x, double y, int rows_n, int column_n, const unsigned int ma
 		r.h = normalized_height;
 		r.w = thickness / maxHeight;
 		r.pos = vertices->size();
-		grid.lines.push_back(r);
+		grid.lines_v.push_back(r);
 		ENTITY_MGR.AddRectToVertices(&r);
 		x_p += col_width;
 		vertical_n++;
@@ -96,7 +68,7 @@ void AddGrid(double x, double y, int rows_n, int column_n, const unsigned int ma
 		r.w = normalized_width;
 		r.h = thickness / maxWidth;
 		r.pos = vertices->size();
-		grid.lines.push_back(r);
+		grid.lines_h.push_back(r);
 		ENTITY_MGR.AddRectToVertices(&r);
 		y_p += row_height;
 		horizontal_n++;
@@ -105,23 +77,50 @@ void AddGrid(double x, double y, int rows_n, int column_n, const unsigned int ma
 	ENTITY_MGR.Grids.push_back(grid);
 }
 
-void ReactToStateChanges() {
-	if (isDragging) {
-		double adjusted_x = WINDOW_MGR.mouse_x;
-		double adjusted_y = WINDOW_MGR.mouse_y;
-		MoveToClosestStep(STEP, &adjusted_x, &adjusted_y, WINDOW_MGR.SCR_WIDTH, WINDOW_MGR.SCR_HEIGHT);
+void GetColAndRowUnderCursor(Grid* grid,float mouse_x, float mouse_y, int* row, int* col) {
 
-		ENTITY_MGR.SetRectDimentions(ENTITY_MGR.Rects[0].x, ENTITY_MGR.Rects[0].y, adjusted_x, adjusted_y, &ENTITY_MGR.Rects[0]);
+	*row = 0;
+	*col = 0;
+
+	for (int i = 0; i < grid->lines_v.size(); i++) {
+		if (grid->lines_v[i].x < mouse_x) *col += 1;
+	}
+
+	for (int i = 0; i < grid->lines_h.size(); i++) {
+		if (grid->lines_h[i].y > mouse_y) *row += 1;
+	}
+
+	if (*row > 0) *row -= 1;
+	if (*col > 0) *col -= 1;
+
+}
+
+void ReactToStateChanges() {
+
+	if (isDragging && gridMouseWasIn != NULL) {
+		int hovered_row = 0, hovered_col = 0;
+		GetColAndRowUnderCursor(gridMouseWasIn, WINDOW_MGR.mouse_x, WINDOW_MGR.mouse_y, &hovered_row, &hovered_col);
+
+		float cell_x, cell_y;
+		GetCellTopLeftCornerPos(gridMouseWasIn, hovered_row, hovered_col, &cell_x, &cell_y);
+
+		cell_x += gridMouseWasIn->cell_w;
+		cell_y += gridMouseWasIn->cell_h * -1;
+
+		ENTITY_MGR.SetRectDimentions(ENTITY_MGR.Rects[0].x, ENTITY_MGR.Rects[0].y, cell_x, cell_y, &ENTITY_MGR.Rects[0]);
 	}
 
 	if (WINDOW_MGR.buttonType == LEFT && WINDOW_MGR.buttonAction == PRESSED) {
-		isDragging = true;
-
-		ENTITY_MGR.Rects[0].x = WINDOW_MGR.mouse_x;
-		ENTITY_MGR.Rects[0].y = WINDOW_MGR.mouse_y;
+		gridMouseWasIn = GetGridMouseIsIn(&ENTITY_MGR.Grids, WINDOW_MGR.mouse_x, WINDOW_MGR.mouse_y);
+		if (gridMouseWasIn != NULL) {
+			isDragging = true;
+			int hovered_row = 0, hovered_col = 0;
+			GetColAndRowUnderCursor(gridMouseWasIn, WINDOW_MGR.mouse_x, WINDOW_MGR.mouse_y, &hovered_row, &hovered_col);
+			SnapRectToGridCell(gridMouseWasIn, &ENTITY_MGR.Rects[0], hovered_row, hovered_col);
+		}
 	}
 
-	if (WINDOW_MGR.buttonType == LEFT && WINDOW_MGR.buttonAction == RELEASED) {
+	if (gridMouseWasIn != NULL && WINDOW_MGR.buttonType == LEFT && WINDOW_MGR.buttonAction == RELEASED) {
 		isDragging = false;
 
 		if (!isOverlapping(&ENTITY_MGR.Rects[0], ENTITY_MGR.Rects)) {
@@ -154,7 +153,8 @@ int main()
 	unsigned int VBO, VAO;
 
 	RegisterDrawingRectAsFirstElement();
-	AddGrid(-0.9, 0.1, 20, 20, 1000, 1000);
+	AddGrid(-0.9, 0.3, 32, 32, 1280, 1280);
+
 
 	while (!WINDOW_MGR.IsClosing())
 	{
