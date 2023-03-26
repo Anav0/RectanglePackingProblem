@@ -76,8 +76,8 @@ Grid* GetGridMouseIsIn(std::vector<Grid>* grids, float mouse_x, float mouse_y) {
 }
 
 void GetCellTopLeftCornerPos(Grid* grid, int row, int col, float* cell_x, float* cell_y) {
-	*cell_x = grid->x + (grid->cell_w * col);
-	*cell_y = grid->y + (grid->cell_h * row * -1);
+	*cell_x = grid->x + (grid->cell_w * col) + grid->line_thickness;
+	*cell_y = grid->y + (((grid->cell_h * row) + grid->line_thickness) * -1);
 }
 
 void SnapRectToGridCell(Grid* grid, Rect* rect, int row, int col) {

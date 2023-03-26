@@ -11,7 +11,7 @@
 
 Renderer RENDERER{};
 EntityManager ENTITY_MGR{};
-Color defaultRectColor { 0.78f, 0.52f, 0.05f };
+Color defaultRectColor { 1.0f, 0.43f, 0.20f };
 Color defaultGridColor { 0.05f, 0.69f, 0.78f };
 GlfwWindow WINDOW_MGR{};
 
@@ -37,7 +37,7 @@ void AddGrid(double x, double y, int rows_n, int column_n, const unsigned int ma
 	Grid grid{};
 	grid.cell_h = row_height;
 	grid.cell_w = col_width;
-	grid.line_thickness = (static_cast<float>(maxHeight) / rows_n);
+	grid.line_thickness = thickness / maxHeight;
 	grid.gap = col_width;
 	grid.x = x;
 	grid.y = y;
@@ -107,8 +107,8 @@ void ReactToStateChanges() {
 		float cell_x, cell_y;
 		GetCellTopLeftCornerPos(gridMouseWasIn, hovered_row, hovered_col, &cell_x, &cell_y);
 
-		cell_x += gridMouseWasIn->cell_w;
-		cell_y += gridMouseWasIn->cell_h * -1;
+		cell_x += gridMouseWasIn->cell_w - gridMouseWasIn->line_thickness;
+		cell_y += (gridMouseWasIn->cell_h - gridMouseWasIn->line_thickness) * -1;
 
 		ENTITY_MGR.SetRectDimentions(ENTITY_MGR.Rects[0].x, ENTITY_MGR.Rects[0].y, cell_x, cell_y, &ENTITY_MGR.Rects[0]);
 	}
