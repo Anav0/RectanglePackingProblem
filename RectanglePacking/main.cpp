@@ -6,6 +6,7 @@
 #include "EntityManager.h"
 #include "Renderer.h"
 #include "GlfwWindow.h"
+#include "Palettes.h"
 
 #include "Gameplay.h"
 
@@ -17,7 +18,7 @@ GlfwWindow WINDOW_MGR{};
 
 bool isDragging = false;
 Grid* gridMouseWasIn = nullptr;
-
+int colorPickIndex = 0;
 
 void AddGrid(double x, double y, int rows_n, int column_n, const unsigned int maxWidth, const unsigned int maxHeight, Color color) {
 
@@ -116,6 +117,9 @@ void ReactToStateChanges() {
 	if (WINDOW_MGR.buttonType == LEFT && WINDOW_MGR.buttonAction == PRESSED) {
 		gridMouseWasIn = GetGridMouseIsIn(&ENTITY_MGR.Grids, WINDOW_MGR.mouse_x, WINDOW_MGR.mouse_y);
 		if (gridMouseWasIn != NULL) {
+			auto pallett_length = sizeof(PalletteA) / sizeof(Color);
+			ENTITY_MGR.Rects[0].color = PalletteA[colorPickIndex % pallett_length];
+			colorPickIndex++;
 			isDragging = true;
 			int hovered_row = 0, hovered_col = 0;
 			GetColAndRowUnderCursor(gridMouseWasIn, WINDOW_MGR.mouse_x, WINDOW_MGR.mouse_y, &hovered_row, &hovered_col);
@@ -128,7 +132,6 @@ void ReactToStateChanges() {
 
 		if (!isOverlapping(&ENTITY_MGR.Rects[0], ENTITY_MGR.Rects)) {
 			Rect r{};
-			r.color = defaultRectColor;
 			memcpy(&r, &ENTITY_MGR.Rects[0], sizeof(r));
 			r.pos = RENDERER.vertices.size();
 			ENTITY_MGR.Rects.push_back(r);
