@@ -162,7 +162,8 @@ int main()
 	unsigned int VBO, VAO;
 
 	RegisterDrawingRectAsFirstElement();
-	AddGrid(-0.9, 0.3, 32, 32, 1280, 1280, defaultGridColor);
+	const int cells = 32;
+	AddGrid(-0.9, 0.3, cells, cells, 1280, 1280, defaultGridColor);
 	
 	std::vector<DrawInfo> drawInfos = {
 		{0, 0, 2, 2},
