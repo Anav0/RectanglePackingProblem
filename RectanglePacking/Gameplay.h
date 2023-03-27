@@ -19,6 +19,29 @@ bool isPointInRect(float x, float y, float w, float h, float p_x, float p_y) {
 
 	return p_x <= max_x && p_x >= min_x && p_y >= min_y && y <= max_y;
 }
+//TODO(Igor): make them both use the same fn
+bool isOverlapping(Rect* rect, std::vector<Rect*> rects) {
+	float rect_x1 = rect->x;
+	float rect_x2 = rect->x + rect->w;
+	float rect_y1 = rect->y - rect->h;
+	float rect_y2 = rect->y;
+
+	//First element is the one we drag
+	for (size_t i = 0; i < rects.size(); i++)
+	{
+		auto& r = rects[i];
+		float r_x1 = r->x;
+		float r_x2 = r->x + r->w;
+		float r_y1 = r->y - r->h;
+		float r_y2 = r->y;
+
+		if (rect_x1 < r_x2 && rect_x2 > r_x1 &&
+			rect_y1 < r_y2 && rect_y2 > r_y1)
+			return true;
+	}
+
+	return false;
+}
 
 bool isOverlapping(Rect* rect, std::vector<Rect> rects) {
 	float rect_x1 = rect->x;
@@ -27,7 +50,7 @@ bool isOverlapping(Rect* rect, std::vector<Rect> rects) {
 	float rect_y2 = rect->y;
 
 	//First element is the one we drag
-	for (size_t i = 1; i < rects.size(); i++)
+	for (size_t i = 0; i < rects.size(); i++)
 	{
 		auto& r = rects[i];
 		float r_x1 = r.x;
@@ -88,9 +111,9 @@ void SnapRectToGridCell(Grid* grid, Rect* rect, int row, int col) {
 	rect->y = cell_y;
 }
 
-Rect DrawRectOnGrid(Grid* grid, EntityManager* em, int startRow, int startCol, int span_h, int span_v, Color color) {
+Rect DrawRectOnGrid(Grid* grid, EntityManager* em, int startRow, int startCol, int span_h, int span_v, const Color* color) {
 	Rect rect{};
-	rect.color = color;
+	rect.color = *color;
 
 	//Set x and y to start cells x and y
 	float cell_x, cell_y;
@@ -106,5 +129,36 @@ Rect DrawRectOnGrid(Grid* grid, EntityManager* em, int startRow, int startCol, i
 	//Assign width and height of rect from those BR data
 	em->SetRectDimentions(rect.x, rect.y, br_x, br_y, &rect);
 
+	
+
 	return rect;
+}
+
+struct DrawInfo {
+	int row, col, len_v, len_h;
+};
+
+
+bool TryDrawingRectOnGrid(Grid* grid, EntityManager* em, DrawInfo* drawInfo, const Color* color) {
+	Rect rect = DrawRectOnGrid(grid, em, drawInfo->row, drawInfo->col, drawInfo->len_h, drawInfo->len_v, color);
+	
+	if (!isOverlapping(&rect, grid->rects_on_this_grid)) {
+		em->RegisterRect(rect, grid);
+		return true;
+	}
+	else {
+		return false;
+	}
+
+}
+
+bool TryDrawingRectsOnGrid(Grid* grid, EntityManager* em, std::vector<DrawInfo> drawInfos, std::vector<Color> pallette) {
+	int pallette_len = pallette.size();
+	int drawInfos_len = drawInfos.size();
+	for (size_t i = 0; i < drawInfos_len; i++)
+	{
+		TryDrawingRectOnGrid(grid, em, &drawInfos[i], &pallette[i % pallette.size()]);
+	}
+
+	return true;
 }

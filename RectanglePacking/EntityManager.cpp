@@ -108,3 +108,10 @@ void EntityManager::RegisterRect(Rect rect) {
 	Rects.push_back(rect);
 	AddRectToVertices(&rect);
 }
+
+void EntityManager::RegisterRect(Rect rect, Grid* grid) {
+	rect.pos = renderer->vertices.size();
+	Rects.push_back(rect);
+	AddRectToVertices(&rect);
+	grid->rects_on_this_grid.push_back(rect);
+}

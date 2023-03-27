@@ -19,6 +19,7 @@ struct Grid {
 	float cell_h, cell_w;
 	std::vector<Rect> lines_v;
 	std::vector<Rect> lines_h;
+	std::vector<Rect> rects_on_this_grid;
 };
 
 class EntityManager
@@ -32,6 +33,7 @@ public:
 	int total_number_of_rects = 0;
 
 	void RegisterRect(Rect rect);
+	void RegisterRect(Rect rect, Grid* grid);
 	void AddRectToVertices(Rect* rect);
 	void UpdateVertexData(Rect* rect);
 	void SetRectDimentions(float TL_x, float TL_y, float BR_x, float BR_y, Rect* rect);

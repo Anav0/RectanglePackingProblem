@@ -130,12 +130,10 @@ void ReactToStateChanges() {
 	if (gridMouseWasIn != NULL && WINDOW_MGR.buttonType == LEFT && WINDOW_MGR.buttonAction == RELEASED) {
 		isDragging = false;
 
-		if (!isOverlapping(&ENTITY_MGR.Rects[0], ENTITY_MGR.Rects)) {
+		if (!isOverlapping(&ENTITY_MGR.Rects[0], gridMouseWasIn->rects_on_this_grid)) {
 			Rect r{};
 			memcpy(&r, &ENTITY_MGR.Rects[0], sizeof(r));
-			r.pos = RENDERER.vertices.size();
-			ENTITY_MGR.Rects.push_back(r);
-			ENTITY_MGR.AddRectToVertices(&r);
+			ENTITY_MGR.RegisterRect(r, gridMouseWasIn);
 		}
 
 		ENTITY_MGR.Rects[0].x = -1;
@@ -165,7 +163,14 @@ int main()
 
 	RegisterDrawingRectAsFirstElement();
 	AddGrid(-0.9, 0.3, 32, 32, 1280, 1280, defaultGridColor);
+	
+	std::vector<DrawInfo> drawInfos = {
+		{0, 0, 2, 2},
+		{0, 0, 2, 2},
+		{5, 5, 4, 4},
+	};
 
+	TryDrawingRectsOnGrid(&ENTITY_MGR.Grids[0], &ENTITY_MGR, drawInfos, PalletteA);
 
 	while (!WINDOW_MGR.IsClosing())
 	{
