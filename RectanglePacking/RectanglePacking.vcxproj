@@ -144,6 +144,7 @@
     <ClInclude Include="Gameplay.h" />
     <ClInclude Include="GlfwWindow.h" />
     <ClInclude Include="Misc.h" />
+    <ClInclude Include="Packing.h" />
     <ClInclude Include="Palettes.h" />
     <ClInclude Include="Renderer.h" />
   </ItemGroup>
