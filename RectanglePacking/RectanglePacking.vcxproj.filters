@@ -50,5 +50,8 @@
     <ClInclude Include="Palettes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Packing.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
