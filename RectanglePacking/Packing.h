@@ -14,21 +14,20 @@ bool ByX(const Rect* a, const Rect* b)
 }
 
 void ConstructPermutationFromRects(std::vector<Rect>* rects, std::vector<int>* PM, std::vector<int>* PP, std::vector<int>* PH) {
-	for (size_t i = 0; i < rects->size(); i++)
-	{
-		PP->push_back(i);
-		PM->push_back(i);
-		PH->push_back(i);
-	}
-
 	//std::sort(rects->begin(), rects->end(), ByY);
+
+
 }
 
 inline bool isBeforeInPermutation(int a, int b, std::vector<int>* positionHelper) {
 	return positionHelper[a] < positionHelper[b];
 }
 
-int CalculateValue(std::vector<int>* PM, std::vector<int>* PP, std::vector<int>* PH) {}
+int CalculateValue(std::vector<int>* PM, std::vector<int>* PP, std::vector<int>* PH, std::vector<double>* lengths) {
+
+	double total = 0;
+
+}
 
 int CalculatePenelty(std::vector<int>* PM, std::vector<int>* PP, std::vector<int>* PH) {}
 
