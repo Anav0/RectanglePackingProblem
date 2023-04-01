@@ -3,9 +3,9 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#include "Misc.h"
-
 #include <vector>
+
+#include "Misc.h"
 
 class Renderer
 {
