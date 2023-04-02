@@ -33,3 +33,5 @@
 /.vs/RectanglePacking
 /RectanglePacking/x64/Debug
 /x64/Debug
+/RectanglePacking/x64/Release
+/x64/Release
